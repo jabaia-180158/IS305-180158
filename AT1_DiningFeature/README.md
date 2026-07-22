@@ -7,7 +7,7 @@
 - **Unit:** IS305 - OOP
 
 ## GitHub Repository
-🔗 **Repository URL:** https://githut.com/jabaia-180158/IS305-180158.git
+🔗 **Repository URL:** https://github.com/jabaia-180158/IS305-180158.git
 
 ## Program Description
 This program demonstrates the use of JavaScript classes, objects, constructors, private fields, getters, setters, and methods. It implements a meal booking system for a dining service where students can book meals with specific dietary requirements.
