@@ -8,6 +8,7 @@
 
 ## GitHub Repository
 🔗 **Repository URL:** https://github.com/yourusername/IS305-180158
+🔗 **Repository URL:** https://github.com/jabaia-180158/IS305-180158.git
 
 ## Program Description
 This is a dining meal booking system that demonstrates object-oriented programming concepts in JavaScript. The application features:
