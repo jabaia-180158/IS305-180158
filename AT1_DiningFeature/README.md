@@ -1,42 +1,53 @@
-# Dining Meal Booking Feature
+# Dining Meal Booking Feature - Lab 2 Extension
 
 ## Student Information
 - **Student Name:** Joseph ABAIA
 - **Student ID:** 180158
-- **Date:** 19 July 2026
-- **Unit:** IS305 - OOP
+- **Date:** 17 August 2026
+- **Unit:** IS305 - Web Development
 
 ## GitHub Repository
-🔗 **Repository URL:** https://githut.com/jabaia-180158/IS305-180158.git
+🔗 **Repository URL:** https://github.com/yourusername/IS305-180158
 
 ## Program Description
-This program demonstrates the use of JavaScript classes, objects, constructors, private fields, getters, setters, and methods. It implements a meal booking system for a dining service where students can book meals with specific dietary requirements.
+This is a dining meal booking system that demonstrates object-oriented programming concepts in JavaScript. The application features:
+
+- **Student Class**: Stores student identity information
+- **MealBooking Class**: Stores meal booking information linked to a Student
+- **Object Relationships**: Student objects can be connected to multiple MealBooking objects
+- **Encapsulation**: Private fields with getters and setters
+- **Validation**: Input validation with error handling
 
 ## Files Included
 
 | File | Purpose |
 |------|---------|
-| `MealBooking.js` | Defines the MealBooking class with private fields, constructor, getters, setters, and methods for calculating total cost and generating booking summaries |
-| `DiningApp.js` | Main application file that creates MealBooking objects, demonstrates all features, and runs test cases |
-| `README.md` | Project documentation with setup instructions and test results |
+| `Student.js` | Defines the Student class with private fields, constructor, getters, setters, and summary methods |
+| `MealBooking.js` | Defines the MealBooking class, updated to work with Student objects |
+| `DiningApp.js` | Main application demonstrating Student and MealBooking objects working together |
+| `README.md` | Project documentation with setup instructions |
 
-## Program Features
-- ✅ Class with private fields (`#studentId`, `#studentName`, etc.)
-- ✅ Constructor with default `Pending` status
-- ✅ Getters and setters for all fields
-- ✅ Input validation in setters
-- ✅ `calculateTotal()` method with meal pricing
-- ✅ `getSummary()` method for formatted output
-- ✅ Test cases demonstrating all functionality
+## Key Features Added in Lab 2
+- ✅ Separate Student class for identity management
+- ✅ MealBooking now stores a Student object instead of separate ID and name
+- ✅ Multiple bookings can be linked to the same Student
+- ✅ Unique Booking ID generation
+- ✅ Student email and phone number validation
+- ✅ Demonstration of object relationships and arrays
 
 ## How to Run the Program
 
 ### Prerequisites
 - Node.js (v14 or higher)
-- npm (Node Package Manager)
-- Git (for cloning the repository)
+- Git (for cloning)
 
-### Installation
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/jabaia-180158/IS305-180158.git
+### Installation & Running
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/IS305-180158.git
+
+# Navigate to project
+cd IS305-180158/AT1_DiningFeature
+
+# Run the program
+node DiningApp.js
