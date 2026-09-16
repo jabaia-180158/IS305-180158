@@ -1,0 +1,13 @@
+{
+  "name": "at1_diningfeature",
+  "version": "1.0.0",
+  "description": "- **Student Name:** Joseph ABAIA\r - **Student ID:** 180158\r - **Date:** 17 August 2026\r - **Unit:** IS305 - Web Development",
+  "main": "CreditDiningAccount.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module"
+}
