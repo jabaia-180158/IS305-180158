@@ -1,37 +1,55 @@
 /*
-Program: Dining Meal Booking Feature - Lab 2 Extension
+Program: Dining Meal Booking Feature - Lab 3
 Student Name: Joseph ABAIA
 Student ID: 180158
-Date: 17 August 2026
-Description: MealBooking class updated to work with Student objects
+Date: 16 September 2026
+Description: MealBooking class with payment processing and duplicate payment prevention
 */
 
-// MealBooking.js
+import { Student } from './Student.js';
+
 export class MealBooking {
+
     // Private fields
-    #student;          // Now stores a Student object instead of studentId and studentName
+    #student;
     #mealDate;
     #mealType;
     #quantity;
     #dietaryNote;
     #bookingStatus;
-    #bookingId;        // New field for unique booking ID
+    #bookingId;
+    #paymentProcessed;
 
     // Constructor
-    constructor(student, mealDate, mealType, quantity, dietaryNote = 'None') {
+    constructor(
+        student,
+        mealDate,
+        mealType,
+        quantity,
+        dietaryNote = 'None'
+    ) {
+
+        if (!(student instanceof Student)) {
+            throw new Error('Invalid student object');
+        }
+
         this.#student = student;
         this.#mealDate = mealDate;
         this.#mealType = mealType;
         this.#quantity = quantity;
         this.#dietaryNote = dietaryNote;
         this.#bookingStatus = 'Pending';
+        this.#paymentProcessed = false;
         this.#bookingId = this.#generateBookingId();
     }
 
-    // Private method to generate unique booking ID
+    // Generate unique booking ID
     #generateBookingId() {
+
         const timestamp = Date.now().toString(36);
-        const random = Math.random().toString(36).substring(2, 6);
+        const random =
+            Math.random().toString(36).substring(2, 6);
+
         return `BK-${timestamp}-${random}`;
     }
 
@@ -41,11 +59,15 @@ export class MealBooking {
     }
 
     getStudentId() {
-        return this.#student ? this.#student.getStudentId() : 'No Student';
+        return this.#student
+            ? this.#student.getStudentId()
+            : 'No Student';
     }
 
     getStudentName() {
-        return this.#student ? this.#student.getStudentName() : 'No Student';
+        return this.#student
+            ? this.#student.getStudentName()
+            : 'No Student';
     }
 
     getMealDate() {
@@ -72,33 +94,55 @@ export class MealBooking {
         return this.#bookingId;
     }
 
-    // Setters with validation
+    // Setters
     setStudent(student) {
+
         if (!(student instanceof Student)) {
             throw new Error('Invalid student object');
         }
+
         this.#student = student;
     }
 
     setMealDate(mealDate) {
+
         if (!mealDate || mealDate.trim() === '') {
             throw new Error('Meal date cannot be empty');
         }
+
         this.#mealDate = mealDate;
     }
 
     setMealType(mealType) {
-        const validTypes = ['Breakfast', 'Lunch', 'Dinner', 'Snack'];
+
+        const validTypes = [
+            'Breakfast',
+            'Lunch',
+            'Dinner',
+            'Snack'
+        ];
+
         if (!validTypes.includes(mealType)) {
-            throw new Error('Invalid meal type. Must be: Breakfast, Lunch, Dinner, or Snack');
+            throw new Error(
+                'Invalid meal type. Must be: Breakfast, Lunch, Dinner, or Snack'
+            );
         }
+
         this.#mealType = mealType;
     }
 
     setQuantity(quantity) {
-        if (quantity < 1 || quantity > 10) {
-            throw new Error('Quantity must be between 1 and 10');
+
+        if (
+            !Number.isInteger(quantity) ||
+            quantity < 1 ||
+            quantity > 10
+        ) {
+            throw new Error(
+                'Quantity must be between 1 and 10'
+            );
         }
+
         this.#quantity = quantity;
     }
 
@@ -107,33 +151,121 @@ export class MealBooking {
     }
 
     setBookingStatus(bookingStatus) {
-        const validStatuses = ['Pending', 'Confirmed', 'Cancelled'];
+
+        const validStatuses = [
+            'Pending',
+            'Confirmed',
+            'Cancelled'
+        ];
+
         if (!validStatuses.includes(bookingStatus)) {
-            throw new Error('Invalid status. Must be: Pending, Confirmed, or Cancelled');
+            throw new Error(
+                'Invalid status. Must be: Pending, Confirmed, or Cancelled'
+            );
         }
+
         this.#bookingStatus = bookingStatus;
     }
 
     // Calculate total cost
     calculateTotal() {
+
         const mealPrices = {
-            'Breakfast': 12.50,
-            'Lunch': 18.00,
-            'Dinner': 22.50,
-            'Snack': 8.00
+            Breakfast: 12.50,
+            Lunch: 18.00,
+            Dinner: 22.50,
+            Snack: 8.00
         };
-        const pricePerMeal = mealPrices[this.#mealType] || 15.00;
+
+        const pricePerMeal =
+            mealPrices[this.#mealType] || 15.00;
+
         return pricePerMeal * this.#quantity;
     }
 
-    // Get booking summary
-    getSummary() {
+    // Process payment
+    processPayment(diningAccount) {
+
+        // Prevent duplicate payment
+        if (this.#paymentProcessed) {
+
+            console.log(
+                'Payment rejected: this booking has already been paid.'
+            );
+
+            return false;
+        }
+
+        // Prevent payment for confirmed booking
+        if (this.#bookingStatus === 'Confirmed') {
+
+            console.log(
+                'Payment rejected: this booking is already confirmed.'
+            );
+
+            return false;
+        }
+
+        // Prevent payment for cancelled booking
+        if (this.#bookingStatus === 'Cancelled') {
+
+            console.log(
+                'Payment rejected: cancelled bookings cannot be paid.'
+            );
+
+            return false;
+        }
+
+        // Validate account
+        if (
+            !diningAccount ||
+            typeof diningAccount.payForMeal !== 'function'
+        ) {
+            throw new Error('Invalid dining account.');
+        }
+
+        // Calculate booking cost
         const total = this.calculateTotal();
-        const studentSummary = this.#student ? this.#student.getSummary() : 'No student assigned';
-        
+
+        console.log(
+            `Processing payment of K${total.toFixed(2)}...`
+        );
+
+        // Polymorphic method call
+        const paymentSuccessful =
+            diningAccount.payForMeal(
+                total,
+                `${this.#mealType} booking`
+            );
+
+        if (paymentSuccessful) {
+
+            this.#bookingStatus = 'Confirmed';
+            this.#paymentProcessed = true;
+
+            console.log('Payment successful.');
+            console.log('Booking Status: Confirmed');
+
+            return true;
+        }
+
+        // Payment failed
+        this.#bookingStatus = 'Pending';
+
+        console.log('Payment failed.');
+        console.log('Booking Status: Pending');
+
+        return false;
+    }
+
+    // Booking summary
+    getSummary() {
+
+        const total = this.calculateTotal();
+
         return `
 ========================================
-MEAL BOOKING SUMMARY
+          MEAL BOOKING SUMMARY
 ========================================
 Booking ID:      ${this.#bookingId}
 Student:         ${this.getStudentName()}
@@ -143,13 +275,14 @@ Meal Type:       ${this.#mealType}
 Quantity:        ${this.#quantity}
 Dietary Note:    ${this.#dietaryNote}
 Booking Status:  ${this.#bookingStatus}
-Total Cost:      $${total.toFixed(2)}
+Total Cost:      K${total.toFixed(2)}
 ========================================
         `;
     }
 
-    // Get a compact booking record
+    // Compact booking record
     getBookingRecord() {
+
         return {
             bookingId: this.#bookingId,
             studentId: this.getStudentId(),
