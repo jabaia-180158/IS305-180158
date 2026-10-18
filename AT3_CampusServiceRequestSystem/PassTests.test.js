@@ -103,5 +103,5 @@ test("Search and status summary work", () => {
   m.submitRequest(makeRequest("REQ002", a));
   m.cancelRequest("REQ002", "S001");
   assert.strictEqual(m.searchRequests("wi-fi").length, 2);
-  assert.deepStrictEqual(m.getRequestSummaryByStatus(), { Submitted: 1, Cancelled: 1, Total: 2 });
+  assert.deepStrictEqual(m.getRequestSummaryByStatus(), { Submitted: 1, Reviewed: 0, Assigned: 0, "In Progress": 0, Resolved: 0, Closed: 0, Cancelled: 1, Total: 2 });
 });
