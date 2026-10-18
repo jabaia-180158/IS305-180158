@@ -1,0 +1,14 @@
+{
+  "name": "at3_campusservicerequestsystem",
+  "version": "1.0.0",
+  "description": "",
+  "main": "CampusServiceApp.js",
+  "scripts": {
+    "test": "node --test",
+    "start": "node CampusServiceApp.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}
