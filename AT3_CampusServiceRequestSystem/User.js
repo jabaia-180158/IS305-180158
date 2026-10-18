@@ -12,7 +12,7 @@ class User {
   #email;
   #userType;
 
-  static USER_TYPES = ["Student", "Staff"];
+  static USER_TYPES = ["Student", "Staff", "Service Officer", "Technician"];
   static #EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   constructor(userId, firstName, lastName, email, userType) {
