@@ -3,7 +3,14 @@
 const readline = require("node:readline");
 const { stdin, stdout } = require("node:process");
 const User = require("./User");
+const StudentRequester = require("./StudentRequester");
+const StaffRequester = require("./StaffRequester");
+const ServiceOfficer = require("./ServiceOfficer");
+const Technician = require("./Technician");
 const ServiceRequest = require("./ServiceRequest");
+const ICTSupportRequest = require("./ICTSupportRequest");
+const MaintenanceRequest = require("./MaintenanceRequest");
+const CleaningRequest = require("./CleaningRequest");
 const ServiceRequestManager = require("./ServiceRequestManager");
 
 const MENU = `
@@ -20,6 +27,13 @@ const MENU = `
 8. Search Requests
 9. View Request Summary
 10. Exit
+--------------------------------------------
+ Role workflows, reports and history
+--------------------------------------------
+11. Service Officer Menu
+12. Technician Menu
+13. Filter and Sort Requests
+14. View Request History
 ============================================`;
 
 class CampusServiceApp {
@@ -29,6 +43,7 @@ class CampusServiceApp {
   #waiting = [];  // pending ask() callbacks
   #closed = false;
 
+  // ---------- input / output helpers ----------
   #setupInput() {
     this.#rl = readline.createInterface({ input: stdin, terminal: false });
     this.#rl.on("line", (line) => {
@@ -68,30 +83,107 @@ class CampusServiceApp {
     console.log(`\n${requests.length} request(s) shown.`);
   }
 
-  // ---------- menu actions ----------
+  #printBrief(requests, emptyMessage) {
+    if (requests.length === 0) return console.log(emptyMessage);
+    for (const r of requests) {
+      const tech = r.assignedTechnician ? r.assignedTechnician.userId : "-";
+      console.log(`${r.requestId.padEnd(8)} ${r.status.padEnd(12)} ${r.priority.padEnd(7)} ${r.category.padEnd(24)} tech:${tech.padEnd(6)} ${r.title}`);
+    }
+    console.log(`${requests.length} request(s) shown.`);
+  }
+
+  async #askUser(prompt = "Your user ID: ") {
+    const id = await this.#ask(prompt);
+    const user = this.#manager.findUserById(id);
+    if (!user) throw new Error(`User "${id}" is not registered.`);
+    return user;
+  }
+
+  // ---------- Pass menu actions ----------
   async #registerUser() {
     const id = await this.#ask("User ID: ");
     const first = await this.#ask("First name: ");
     const last = await this.#ask("Last name: ");
     const email = await this.#ask("Email address: ");
     const type = await this.#pick("User type", User.USER_TYPES);
-    const user = this.#manager.registerUser(new User(id, first, last, email, type));
+
+    let user;
+    switch (String(type).toLowerCase()) {
+      case "student": {
+        const programme = await this.#ask("Programme: ");
+        const year = await this.#ask("Year level (1-6): ");
+        user = new StudentRequester(id, first, last, email, programme, year);
+        break;
+      }
+      case "staff": {
+        const department = await this.#ask("Department: ");
+        user = new StaffRequester(id, first, last, email, department);
+        break;
+      }
+      case "service officer": {
+        const section = await this.#ask("Service section: ");
+        user = new ServiceOfficer(id, first, last, email, section);
+        break;
+      }
+      case "technician": {
+        const speciality = await this.#ask("Technical speciality: ");
+        user = new Technician(id, first, last, email, speciality);
+        break;
+      }
+      default:
+        user = new User(id, first, last, email, type); // rejects an unsupported type
+    }
+    this.#manager.registerUser(user);
     console.log("\nUser registered successfully:\n" + user.displayInfo());
   }
 
   async #submitRequest() {
-    const userId = await this.#ask("Your user ID: ");
-    const user = this.#manager.findUserById(userId);
-    if (!user) throw new Error(`User "${userId}" is not registered. Register first (option 1).`);
+    const requester = await this.#askUser();
     const requestId = await this.#ask("Request ID (e.g. REQ001): ");
     const title = await this.#ask("Title: ");
     const description = await this.#ask("Description: ");
     const location = await this.#ask("Campus location: ");
     const category = await this.#pick("Category", ServiceRequest.CATEGORIES);
     const priority = await this.#pick("Priority", ServiceRequest.PRIORITIES);
-    const request = this.#manager.submitRequest(
-      new ServiceRequest(requestId, user, title, description, location, category, priority)
-    );
+    const common = { requestId, requester, title, description, location, priority };
+
+    let request;
+    switch (String(category).toLowerCase()) {
+      case "ict support": {
+        console.log("\nICT details:");
+        request = new ICTSupportRequest(common, {
+          deviceType: await this.#pick("Device type", ICTSupportRequest.DEVICE_TYPES),
+          systemName: await this.#ask("System name (e.g. Moodle, Wi-Fi): "),
+          faultType: await this.#pick("Fault type", ICTSupportRequest.FAULT_TYPES),
+          networkImpact: await this.#pick("Network impact", ICTSupportRequest.NETWORK_IMPACTS),
+        });
+        break;
+      }
+      case "facilities maintenance": {
+        console.log("\nMaintenance details:");
+        request = new MaintenanceRequest(common, {
+          building: await this.#ask("Building: "),
+          roomNumber: await this.#ask("Room number: "),
+          hazardLevel: await this.#pick("Hazard level", MaintenanceRequest.HAZARD_LEVELS),
+          equipmentAffected: await this.#ask("Equipment affected: "),
+        });
+        break;
+      }
+      case "cleaning and sanitation": {
+        console.log("\nCleaning details:");
+        request = new CleaningRequest(common, {
+          cleaningArea: await this.#ask("Cleaning area: "),
+          hygieneRisk: await this.#pick("Hygiene risk", CleaningRequest.HYGIENE_RISKS),
+          serviceType: await this.#pick("Service type", CleaningRequest.SERVICE_TYPES),
+          preferredServiceTime: await this.#ask("Preferred service time (HH:MM, e.g. 13:30): "),
+        });
+        break;
+      }
+      default:
+        // General Campus Service uses the base class; an unsupported category is rejected here
+        request = new ServiceRequest({ ...common, category });
+    }
+    this.#manager.submitRequest(request);
     console.log("\nRequest submitted successfully:\n" + request.getRequestSummary());
   }
 
@@ -136,7 +228,7 @@ class CampusServiceApp {
   }
 
   async #search() {
-    const text = await this.#ask("Search text: ");
+    const text = await this.#ask("Search text (request ID, title, location...): ");
     this.#printList(this.#manager.searchRequests(text), `No requests match "${text}".`);
   }
 
@@ -147,13 +239,131 @@ class CampusServiceApp {
     for (const [status, count] of Object.entries(s)) console.log(`${status.padEnd(12)}: ${count}`);
   }
 
+  // ---------- Credit: role menus ----------
+  /** Generic sub-menu loop. Each item is [label, async action]. Errors never leave the menu. */
+  async #runSubmenu(title, items) {
+    let inMenu = true;
+    while (inMenu) {
+      console.log(`\n---------- ${title} ----------`);
+      items.forEach(([label], i) => console.log(`${i + 1}. ${label}`));
+      console.log("0. Back to main menu");
+      const choice = await this.#ask("Choice: ");
+      if (choice === null || choice === "0") break;
+      const item = items[Number(choice) - 1];
+      if (!item) { console.log("Invalid choice."); continue; }
+      try {
+        await item[1]();
+      } catch (error) {
+        console.log(`\nError: ${error.message}`);
+      }
+    }
+  }
+
+  async #officerMenu() {
+    const officer = await this.#askUser("Service Officer ID: ");
+    console.log(`\nActing as: ${officer.getFullName()} (${officer.userType})`);
+    const m = this.#manager;
+    const show = (r, message) => console.log(`\n${message}\n` + r.getRequestSummary());
+
+    await this.#runSubmenu("SERVICE OFFICER MENU", [
+      ["View requests waiting for review", async () =>
+        this.#printBrief(m.filterByStatus("Submitted"), "No requests are waiting for review.")],
+      ["Review a request", async () => {
+        const id = await this.#ask("Request ID: ");
+        const comment = await this.#ask("Review comment (blank for default): ");
+        show(m.reviewRequest(id, officer.userId, comment || undefined), "Request reviewed.");
+      }],
+      ["Assign priority", async () => {
+        const id = await this.#ask("Request ID: ");
+        const priority = await this.#pick("Priority", ServiceRequest.PRIORITIES);
+        show(m.setRequestPriority(id, officer.userId, priority), "Priority assigned.");
+      }],
+      ["Assign Technician", async () => {
+        const id = await this.#ask("Request ID: ");
+        const techs = m.getTechnicians();
+        if (techs.length === 0) throw new Error("No Technicians are registered yet.");
+        console.log("Available Technicians:");
+        techs.forEach((t) => console.log(`  ${t.userId} - ${t.getFullName()} (${t.speciality})`));
+        const techId = await this.#ask("Technician ID: ");
+        show(m.assignTechnician(id, officer.userId, techId), "Technician assigned.");
+      }],
+      ["Verify and close a Resolved request", async () => {
+        const id = await this.#ask("Request ID: ");
+        const comment = await this.#ask("Closing comment (blank for default): ");
+        show(m.closeRequest(id, officer.userId, comment || undefined), "Request closed.");
+      }],
+      ["View all requests", async () => this.#printBrief(m.getAllRequests(), "There are no requests in the system.")],
+    ]);
+  }
+
+  async #technicianMenu() {
+    const tech = await this.#askUser("Technician ID: ");
+    console.log(`\nActing as: ${tech.getFullName()} (${tech.userType})`);
+    const m = this.#manager;
+    const show = (r, message) => console.log(`\n${message}\n` + r.getRequestSummary());
+
+    await this.#runSubmenu("TECHNICIAN MENU", [
+      ["View my assigned requests", async () =>
+        this.#printBrief(m.getRequestsAssignedTo(tech.userId), "No requests are assigned to you.")],
+      ["Begin work on a request", async () => {
+        const id = await this.#ask("Request ID: ");
+        show(m.startWork(id, tech.userId), "Work started.");
+      }],
+      ["Record a progress update", async () => {
+        const id = await this.#ask("Request ID: ");
+        const note = await this.#ask("Progress note: ");
+        show(m.addProgressNote(id, tech.userId, note), "Progress recorded.");
+      }],
+      ["Resolve a request", async () => {
+        const id = await this.#ask("Request ID: ");
+        const comment = await this.#ask("Resolution comment (blank for default): ");
+        show(m.resolveRequest(id, tech.userId, comment || undefined), "Request resolved.");
+      }],
+    ]);
+  }
+
+  // ---------- Credit: filter, sort and history ----------
+  async #filterAndSort() {
+    const m = this.#manager;
+    await this.#runSubmenu("FILTER AND SORT", [
+      ["Filter by category", async () =>
+        this.#printBrief(m.filterByCategory(await this.#pick("Category", ServiceRequest.CATEGORIES)), "No matching requests.")],
+      ["Filter by status", async () =>
+        this.#printBrief(m.filterByStatus(await this.#pick("Status", ServiceRequest.STATUSES)), "No matching requests.")],
+      ["Filter by priority", async () =>
+        this.#printBrief(m.filterByPriority(await this.#pick("Priority", ServiceRequest.PRIORITIES)), "No matching requests.")],
+      ["Filter by assigned Technician", async () =>
+        this.#printBrief(m.filterByTechnician(await this.#ask("Technician ID: ")), "No matching requests.")],
+      ["Sort by date submitted (oldest first)", async () =>
+        this.#printBrief(m.sortByDateSubmitted(), "There are no requests in the system.")],
+      ["Sort by date submitted (newest first)", async () =>
+        this.#printBrief(m.sortByDateSubmitted(undefined, true), "There are no requests in the system.")],
+      ["Sort by priority (highest first)", async () =>
+        this.#printBrief(m.sortByPriority(), "There are no requests in the system.")],
+      ["Sort by priority (lowest first)", async () =>
+        this.#printBrief(m.sortByPriority(undefined, false), "There are no requests in the system.")],
+    ]);
+  }
+
+  async #viewHistory() {
+    const id = await this.#ask("Request ID: ");
+    const request = this.#manager.findRequestById(id);
+    if (!request) throw new Error(`Request "${id}" was not found.`);
+    const fmt = (d) => d.toLocaleString("en-GB");
+    console.log(`\nHISTORY OF ${request.requestId} - ${request.title}`);
+    request.getHistory().forEach((h, i) => {
+      console.log(`${i + 1}. ${fmt(h.date)} | ${h.previousStatus ?? "(new)"} -> ${h.newStatus} | ${h.action}`);
+      console.log(`   by ${h.actorId} (${h.actorRole}) - ${h.comment}`);
+    });
+  }
+
   // ---------- main loop ----------
   async run() {
     this.#setupInput();
     let running = true;
     while (running) {
       console.log(MENU);
-      const choice = await this.#ask("Enter your choice (1-10): ");
+      const choice = await this.#ask("Enter your choice (1-14): ");
       if (choice === null) { console.log("\nInput ended. Goodbye."); break; }
       try {
         switch (choice) {
@@ -167,7 +377,11 @@ class CampusServiceApp {
           case "8": await this.#search(); break;
           case "9": this.#summary(); break;
           case "10": running = false; console.log("Goodbye."); break;
-          default: console.log("Invalid choice. Please enter a number from 1 to 10.");
+          case "11": await this.#officerMenu(); break;
+          case "12": await this.#technicianMenu(); break;
+          case "13": await this.#filterAndSort(); break;
+          case "14": await this.#viewHistory(); break;
+          default: console.log("Invalid choice. Please enter a number from 1 to 14.");
         }
       } catch (error) {
         console.log(`\nError: ${error.message}`); // rejected input never crashes the app
