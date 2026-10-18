@@ -1,7 +1,7 @@
 # Campus Service Request Management System
 
 **IS305 Object-Oriented Programming - Assessment Task 3 (Major Project)**
-Name: YOUR NAME | Student ID: YOUR ID
+Name: Joseph ABAIA | Student ID: 180158
 
 A Node.js console application that records, assigns, processes and monitors campus
 service requests. Data is held in JavaScript objects and arrays (no database).
